@@ -1,109 +1,29 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-private static final String ALPHABET = "$abcdefghijklmnopqrstuvwxyz";
-
-for (Map.Entry<String, TrieNode> e : children.entrySet()) {
-  System.out.println(String.format(
-    "My key is %s and my value is %s", 
-    e.getKey(), e.getValue()));
-}
-  
-
-class TrieNode {
-  public Map<String, TrieNode> children = new HashMap<>();
-  // The root TrieNode has a null parent
-  public TrieNode parent;
-  public String edgeToMe;
-  
-  public TrieNode(TrieNode parent, String edgeToMe) {
-    this.parent = parent;
-    this.edgeToMe = edgeToMe;
-  }
-  
-  /** TODO: returns the number of new nodes added below this one */
-  void addString(TrieNode parent, String inputStr) {
-    if (inputStr.size() == 0) {
-      return;
-    }
-    
-    String firstChar = (String) inputStr.charAt(0);
-    if (!children.containsKey(firstChar)) {
-      children.put(firstChar, new TrieNode(parent, firstChar));
-    }
-    children.get(firstChar).descend(children.get(firstChar), inputStr.substring(1));
-  }
-  
-  /** Compresses this and all descendants */
-  void compress() {
-    Stack<TrieNode> stack = new LinkedList<TrieNode>();
-    stack.add(this)
-    while (!stack.isEmpty()) {
-      TrieNode node = stack.pop();
-      if (node.children.size() == 1) {
-        node.collapse();
-      } else {
-        for (TrieNode child : node.children.valueSet()){
-          stack.add(child);
-        }
-      }
-    }
-  }
-  
-  /** Collapse this node into its parent. */
-  void collapse() {
-    assert (this.children.keySet().size() == 1, "This node cannot be collapsed");
-    
-    // This node's only child should change its parent
-    // to be this node's current parent
-    TrieNode onlyChild = this.children.values().toArray()[0];
-    onlyChild.parent = this.parent;
-    
-    // Change the parent's edge to include this node's edge
-    String myEdge = this.children.keySet().toArray()[0];
-    String edgeToMe = this.edgeToMe;
-    onlyChild.edgeToMe = edgeToMe + myEdge;
-    this.parent.children.remove(edgeToMe);
-    this.parent.children.put(edgeToMe + myEdge, onlyChild);
-    
-  }
-  
-  List<TrieNode> getSubtree() {
-    if (children.isEmpty()) {
-      return Collections.singletonList(this);
-    }
-    List<TrieNode> toReturn = new LinkedList<>();
-    toReturn.add(this);
-    for (TrieNode child : children.valueSet()) {
-      toReturn.add(child.getSubtree());
-    }
-    return toReturn;
-  }
-    
-}
-  
-  
-
-class SortNode {
-  // Public so we can just access them directly
-  public final TrieNode trieNode;
-  public final char letter;
-  public final int number;
-  
-  public SortNode(TrieNode trieNode, char letter, int number) {
-    this.trieNode = trieNode;
-    this.letter = letter;
-    this.number = number;
-  }
-}
 
 public class SortStrings {
+	private static final String ALPHABET = "$abcdefghijklmnopqrstuvwxyz";
+	
   public static void main(String[] args) {
+	System.out.println("main");
     String alphabet = args[0];
-    List<String> strings = args[1];
-    List<String> sortedStrings = sortStrings(alphabet, strings);
+    List<String> argsList = Arrays.asList(args);
+    List<String> stringsToSort = argsList.subList(1, argsList.size());
+    List<String> sortedStrings = SortStrings.sortStrings(alphabet, stringsToSort);
+    System.out.println("sorted strings:");
+    System.out.println(sortedStrings);
   }
   
   public static List<Integer> radixSort(List<Integer> inputList) {
-    List<List<Integer>> buckets = new ArrayList<LinkedList<>>(10);
+    List<List<Integer>> buckets = new ArrayList<>(10);
     for (int i = 0; i < 10; i++) {
       buckets.add(i, new LinkedList<>());
     }
@@ -129,13 +49,19 @@ public class SortStrings {
     return sorted;
   }
   
-  public static sortStrings(String alphabet, List<String> strings) {
+  public static String convertIntegerToString(int x) {
+	  // TODO
+	  throw new UnsupportedOperationException();
+  }
+  
+  public static List<String> sortStrings(String alphabet, List<String> strings) {
     // Sort alphabet
   
     // Build trie using hashing representation
-    TrieNode root = new TrieNode(null);
+	// TODO: Figure out if map node or arraynode
+    TrieNode root = new MapNode(null, null);
     for (String string : strings) {
-      root.addString(root, string);  
+      root.addString(string);  
     }
   
     // Compress trie
@@ -148,22 +74,33 @@ public class SortStrings {
     
     // For each node in trie,
     // use radix sort to sort its edges
-    List<TrieNode> allNodes = root.getNodesinSubtree();
+    List<TrieNode> allNodes = root.getSubtree();
     for (TrieNode node : allNodes) {
       List<Integer> valuesToSort = new ArrayList<>();
-      for (String edge : node.children.keySet()) {
+      for (String edge : node.children().stream().map(x -> x.edgeToMe).collect(Collectors.toList())) {
         // Convert edge to an integer
         int edgeValue = 0;
         for (int i = 0; i < edge.length(); i++) {
-          char letter = edgeValue.charAt(i);
-          char letterIndex = alphabet.indexOf(letter);
+          char letter = edge.charAt(i);
+          int letterIndex = alphabet.indexOf(letter);
           edgeValue += (int) (Math.pow(26, i) * letterIndex);
         }
         valuesToSort.add(edgeValue);
       }
       List<Integer> sortedValues = radixSort(valuesToSort);
-      // TODO: Re-assign trie to use sortedValues as children
+
+      List<String> sortedEdges = sortedValues.stream()
+    		  .map(SortStrings::convertIntegerToString)
+    		  .collect(Collectors.toList());
+ 
+      // TODO: Re-assign trie to use sortedEdges as children
     }
+    
+    // In-order traverse the trie to get the strings in sorted order
+    List<String> sortedStrings = new ArrayList<>();
+    
+    
+    return new ArrayList<>();
     
   }
   
